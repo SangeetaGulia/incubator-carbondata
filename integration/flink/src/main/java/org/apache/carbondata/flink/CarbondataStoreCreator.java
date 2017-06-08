@@ -56,6 +56,7 @@ import org.apache.carbondata.core.writer.sortindex.CarbonDictionarySortIndexWrit
 import org.apache.carbondata.core.writer.sortindex.CarbonDictionarySortIndexWriterImpl;
 import org.apache.carbondata.core.writer.sortindex.CarbonDictionarySortInfo;
 import org.apache.carbondata.core.writer.sortindex.CarbonDictionarySortInfoPreparator;
+import org.apache.carbondata.hadoop.util.SchemaReader;
 import org.apache.carbondata.processing.api.dataloader.SchemaInfo;
 import org.apache.carbondata.processing.constants.TableOptionConstant;
 import org.apache.carbondata.processing.csvload.BlockDetails;
@@ -124,15 +125,27 @@ public class CarbondataStoreCreator {
         }
     }
 
+    private boolean checkIfTableExists(AbsoluteTableIdentifier absoluteTableIdentifier) throws IOException {
+        CarbonTablePath carbonTablePath = CarbonStorePath.getCarbonTablePath(absoluteTableIdentifier);
+        String schemaFilePath = carbonTablePath.getSchemaFilePath();
+        return FileFactory.isFileExist(schemaFilePath, FileFactory.FileType.LOCAL) ||
+                FileFactory.isFileExist(schemaFilePath, FileFactory.FileType.HDFS) ||
+                FileFactory.isFileExist(schemaFilePath, FileFactory.FileType.VIEWFS);
+    }
+
     public void createCarbonStore(AbsoluteTableIdentifier absoluteTableIdentifier, String columnString, String[] columnNames, String[] columnTypes, String factFilePath, String[] dimensionColumns) {
         try {
-            File storeDir = new File(absoluteTableIdentifier.getStorePath());
-            CarbonUtil.deleteFoldersAndFiles(storeDir);
             CarbonProperties.getInstance().addProperty(CarbonCommonConstants.STORE_LOCATION_HDFS,
                     absoluteTableIdentifier.getStorePath());
 
-            CarbonTable table = createTable(absoluteTableIdentifier, columnNames, columnTypes, dimensionColumns);
-//            CarbonTable table = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
+            CarbonTable table;
+            if(checkIfTableExists(absoluteTableIdentifier)) {
+                LOGGER.warning("Table Already Exists" + absoluteTableIdentifier.getCarbonTableIdentifier().getTableUniqueName());
+                table = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
+            } else {
+                LOGGER.info("Creating Table" + absoluteTableIdentifier.getCarbonTableIdentifier().getTableUniqueName());
+                table = createTable(absoluteTableIdentifier, columnNames, columnTypes, dimensionColumns);
+            }
             writeDictionary(factFilePath, table, absoluteTableIdentifier, dimensionColumns);
             CarbonLoadModel loadModel = initializeLoadModel(table, absoluteTableIdentifier, factFilePath, columnString);
             executeGraph(loadModel, absoluteTableIdentifier.getStorePath());
