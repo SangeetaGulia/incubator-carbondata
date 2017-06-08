@@ -48,25 +48,44 @@ public class CarbonDataFlinkOutputFormatTest {
         carbonContext = flinkTestUtils.createCarbonContext();
 
         String inputDataForTestTable = getRootPath() + "/integration/flink/src/test/resources/testtable.csv";
-        String createTableTestTableCommand = "Create table testtable (Id Int, date Date,country String, name String, phonetype String, serialname String, salary Int) stored by 'carbondata'";
+        String createTableTestTableCommand = "Create table testtable (Id Int, date Date,country String, name String" +
+                ", phonetype String, serialname String, salary Int) stored by 'carbondata'";
         String loadTableTestTableCommand = "LOAD DATA LOCAL INPATH '"+ inputDataForTestTable +"' into table testtable";
         flinkTestUtils.createStore(carbonContext, createTableTestTableCommand, loadTableTestTableCommand);
 
-        String inputDataForUniqData = getRootPath() + "/integration/flink/src/test/resources/UniqData.csv";
-        String createTableUniqDataCommand = "CREATE TABLE uniqdata_100 (CUST_ID int,CUST_NAME String,ACTIVE_EMUI_VERSION string, DOB timestamp, DOJ timestamp, BIGINT_COLUMN1 bigint,BIGINT_COLUMN2 bigint,DECIMAL_COLUMN1 decimal(30,10), DECIMAL_COLUMN2 decimal(36,10),Double_COLUMN1 double, Double_COLUMN2 double,INTEGER_COLUMN1 int) STORED BY 'org.apache.carbondata.format' TBLPROPERTIES (\"TABLE_BLOCKSIZE\"= \"256 MB\")";
+        String inputDataForTestTableUniqdata = getRootPath() + "/integration/flink/src/test/resources/testtableUniqueData.csv";
+        String createTableTestTableCommandUniqdata = "Create table testtableuniquedata (Id Int, date Date,country String," +
+                "name String" + ", phonetype String, serialname String, salary Int) stored by 'carbondata'";
+        String loadTableTestTableCommandUniqdata = "LOAD DATA LOCAL INPATH '"+ inputDataForTestTableUniqdata +"' into " +
+                "table testtableuniquedata";
+        flinkTestUtils.createStore(carbonContext, createTableTestTableCommandUniqdata, loadTableTestTableCommandUniqdata);
 
-        String loadTableUniqDataCommand = "LOAD DATA INPATH '" + inputDataForUniqData+ "' into table uniqdata_100 OPTIONS('DELIMITER'=',' , 'QUOTECHAR'='\"','BAD_RECORDS_ACTION'='FORCE','FILEHEADER'='CUST_ID,CUST_NAME,ACTIVE_EMUI_VERSION,DOB,DOJ,BIGINT_COLUMN1,BIGINT_COLUMN2,DECIMAL_COLUMN1,DECIMAL_COLUMN2,Double_COLUMN1,Double_COLUMN2,INTEGER_COLUMN1')";
+        String inputDataForUniqData = getRootPath() + "/integration/flink/src/test/resources/UniqData.csv";
+        String createTableUniqDataCommand = "CREATE TABLE uniqdata_100 (CUST_ID int,CUST_NAME String,ACTIVE_EMUI_VERSION" +
+                " string, DOB timestamp, DOJ timestamp, BIGINT_COLUMN1 bigint,BIGINT_COLUMN2 bigint,DECIMAL_COLUMN1 " +
+                "decimal(30,10), DECIMAL_COLUMN2 decimal(36,10),Double_COLUMN1 double, Double_COLUMN2 double," +
+                "INTEGER_COLUMN1 int) STORED BY 'org.apache.carbondata.format' TBLPROPERTIES " +
+                "(\"TABLE_BLOCKSIZE\"= \"256 MB\")";
+
+        String loadTableUniqDataCommand = "LOAD DATA INPATH '" + inputDataForUniqData+ "' into table uniqdata_100 " +
+                "OPTIONS('DELIMITER'=',' , 'QUOTECHAR'='\"','BAD_RECORDS_ACTION'='FORCE','FILEHEADER'='CUST_ID," +
+                "CUST_NAME,ACTIVE_EMUI_VERSION,DOB,DOJ,BIGINT_COLUMN1,BIGINT_COLUMN2,DECIMAL_COLUMN1,DECIMAL_COLUMN2," +
+                "Double_COLUMN1,Double_COLUMN2,INTEGER_COLUMN1')";
         flinkTestUtils.createStore(carbonContext, createTableUniqDataCommand, loadTableUniqDataCommand);
         carbonContext.sql("select * from uniqdata_100");
 
         String inputDataForFloatTable = getRootPath() + "/integration/flink/src/test/resources/floatData.csv";
-        String createTableForFloatCommand = "Create table flink_float_table (ID Int,name String,floatField float) stored by 'carbondata'";
-        String loadTableForFloatTableCommand = "LOAD DATA LOCAL INPATH '"+ inputDataForFloatTable +"' into table flink_float_table";
+        String createTableForFloatCommand = "Create table flink_float_table (ID Int,name String,floatField float)" +
+                " stored by 'carbondata'";
+        String loadTableForFloatTableCommand = "LOAD DATA LOCAL INPATH '"+ inputDataForFloatTable +"' into table" +
+                " flink_float_table";
         flinkTestUtils.createStore(carbonContext, createTableForFloatCommand, loadTableForFloatTableCommand);
 
         String inputDataForCharTable = getRootPath() + "/integration/flink/src/test/resources/charData.csv";
-        String createTableForCharCommand = "Create table flink_char_table (ID Int, Grade char(1)) stored by 'carbondata'";
-        String loadTableForCharTableCommand = "LOAD DATA LOCAL INPATH '"+ inputDataForCharTable +"' into table flink_char_table";
+        String createTableForCharCommand = "Create table flink_char_table (ID Int, Grade char(1)) stored by " +
+                "'carbondata'";
+        String loadTableForCharTableCommand = "LOAD DATA LOCAL INPATH '"+ inputDataForCharTable +"' into table" +
+                " flink_char_table";
         flinkTestUtils.createStore(carbonContext, createTableForCharCommand, loadTableForCharTableCommand);
 
 //        flinkTestUtils.closeContext(carbonContext);
@@ -82,7 +101,7 @@ public class CarbonDataFlinkOutputFormatTest {
         carbonContext.sql("Drop table if exists flink_float_table");
         carbonContext.sql("Drop table if exists flink_char_table");
         flinkTestUtils.closeContext(carbonContext);
-        FileUtils.deleteDirectory(new File(getRootPath() + "/integration/flink/target/store"));
+//        FileUtils.deleteDirectory(new File(getRootPath() + "/integration/flink/target/store"));
         FileUtils.deleteDirectory(new File(getRootPath() + "/integration/flink/target/store-input"));
         FileUtils.deleteDirectory(new File(getRootPath() + "/integration/flink/target/carbonmetastore"));
         FileUtils.deleteDirectory(new File(getRootPath() + "/integration/flink/target/flink-records"));
@@ -93,6 +112,7 @@ public class CarbonDataFlinkOutputFormatTest {
         CarbonDataFlinkOutputFormat.writeCount = 0;
     }
 
+    @Ignore
     @Test
     public void testOutputFormatWithProjection() throws Exception {
         ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
@@ -122,8 +142,11 @@ public class CarbonDataFlinkOutputFormatTest {
         dataSource.output(outputFormat.finish());
         environment.execute();
 
-        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
-        List<Tuple2<Void, Object[]>> retrievedDataSource = environment.createInput(carbonFlinkInputFormat.getInputFormat()).collect();
+        String carbonTablePath = "/integration/flink/target/store/default/test_table_projection";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() +
+                carbonTablePath, columns, false);
+        List<Tuple2<Void, Object[]>> retrievedDataSource = environment.createInput(carbonFlinkInputFormat
+                .getInputFormat()).collect();
         Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
     }
 
@@ -135,7 +158,8 @@ public class CarbonDataFlinkOutputFormatTest {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         String[] columns = {"ID", "date", "country", "name", "phonetype", "serialname", "salary"};
         String path = "/integration/flink/target/store-input/default/testtable";
-        CarbonDataFlinkInputFormat carbondataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
+        CarbonDataFlinkInputFormat carbondataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() +
+                path, columns, false);
 
         DataSet<Tuple2<Void, Object[]>> dataSource = env.createInput(carbondataFlinkInputFormat.getInputFormat());
         dataSource.print();
@@ -160,8 +184,11 @@ public class CarbonDataFlinkOutputFormatTest {
         env.execute();
 
         CacheProvider.getInstance().dropAllCache();
-        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
-        List<Tuple2<Void, Object[]>> retrievedDataSource = env.createInput(carbonFlinkInputFormat.getInputFormat()).collect();
+        String carbonTablePath = "/integration/flink/target/store/default/testtable";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() +
+                carbonTablePath, columns, false);
+        List<Tuple2<Void, Object[]>> retrievedDataSource = env.createInput(carbonFlinkInputFormat.getInputFormat())
+                .collect();
         Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
     }
 
@@ -194,11 +221,11 @@ public class CarbonDataFlinkOutputFormatTest {
         env.execute();
 
         CacheProvider.getInstance().dropAllCache();
-        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
+        String carbonTablePath = "/integration/flink/target/store/default/uniqData_alltypes";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + carbonTablePath, columns, false);
         List<Tuple2<Void, Object[]>> retrievedDataSource = env.createInput(carbonFlinkInputFormat.getInputFormat()).collect();
         Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
     }
-
 
     @Test
     public void testOutputFormatForFloatDatatype() throws Exception {
@@ -232,7 +259,8 @@ public class CarbonDataFlinkOutputFormatTest {
         long writeCount = CarbonDataFlinkOutputFormat.getWriteCount();
 
         CacheProvider.getInstance().dropAllCache();
-        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
+        String carbonTablePath = "/integration/flink/target/store/default/flink_float_table";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + carbonTablePath, columns, false);
         List<Tuple2<Void, Object[]>> retrievedDataSource = env.createInput(carbonFlinkInputFormat.getInputFormat()).collect();
         Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
         Assert.assertEquals(writeCount, recordCount);
@@ -267,8 +295,11 @@ public class CarbonDataFlinkOutputFormatTest {
 
         dataSource.output(outputFormat.finish());
         env.execute();
+
         CacheProvider.getInstance().dropAllCache();
-        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
+        String carbonTablePath = "/integration/flink/target/store/default/flink_char_table";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + carbonTablePath, columns, false);
         List<Tuple2<Void, Object[]>> retrievedDataSource = env.createInput(carbonFlinkInputFormat.getInputFormat()).collect();
         Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
         long writeCount = CarbonDataFlinkOutputFormat.getWriteCount();
@@ -282,7 +313,8 @@ public class CarbonDataFlinkOutputFormatTest {
         String path = "/integration/flink/target/store-input/default/testtable";
         CacheProvider.getInstance().dropAllCache();
 
-        CarbonDataFlinkInputFormat carbonDataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath() + path, columns, false);
+        CarbonDataFlinkInputFormat carbonDataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + path, columns, false);
         try {
             DataSet<Tuple2<Void, Object[]>> dataSource = environment.createInput(carbonDataFlinkInputFormat.getInputFormat());
             long recordCount = dataSource.count();
@@ -650,4 +682,125 @@ public class CarbonDataFlinkOutputFormatTest {
             assert true;
         }
     }
+
+    @Ignore
+    @Test
+    public void testMultipleLoadForDuplicateData() throws Exception {
+        ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
+        String[] columns = {"ID", "country", "salary"};
+        String path = "/integration/flink/target/store-input/default/testtable";
+        CarbonDataFlinkInputFormat carbondataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + path, columns, false);
+
+        DataSet<Tuple2<Void, Object[]>> dataSource = environment.createInput(carbondataFlinkInputFormat.getInputFormat());
+        long recordCount = dataSource.count();
+        Tuple2<Void,Object[]> inputRecord = dataSource.collect().iterator().next();
+
+        String[] columnTypes = {"Int", "String", "Long"};
+        String[] columnHeaders = {"ID", "country", "salary"};
+        String[] dimensionColumns = {"country"};
+
+        CacheProvider.getInstance().dropAllCache();
+        CarbonDataFlinkOutputFormat.CarbonDataOutputFormatBuilder outputFormat =
+                CarbonDataFlinkOutputFormat.buildCarbonDataOutputFormat()
+                        .setColumnNames(columnHeaders)
+                        .setColumnTypes(columnTypes)
+                        .setStorePath(getRootPath() + "/integration/flink/target/store")
+                        .setDatabaseName("default")
+                        .setTableName("test_table_multi_load")
+                        .setRecordCount(recordCount)
+                        .setDimensionColumns(dimensionColumns);
+
+        dataSource.output(outputFormat.finish());
+        environment.execute();
+
+//        CacheProvider.getInstance().dropAllCache();
+        CarbonDataFlinkOutputFormat.CarbonDataOutputFormatBuilder carbonOutputFormat =
+                CarbonDataFlinkOutputFormat.buildCarbonDataOutputFormat()
+                        .setColumnNames(columnHeaders)
+                        .setColumnTypes(columnTypes)
+                        .setStorePath(getRootPath() + "/integration/flink/target/store")
+                        .setDatabaseName("default")
+                        .setTableName("test_table_multi_load")
+                        .setRecordCount(recordCount)
+                        .setDimensionColumns(dimensionColumns);
+
+        dataSource.output(carbonOutputFormat.finish());
+        environment.execute();
+        CacheProvider.getInstance().dropAllCache();
+        String carbonTablePath = "/integration/flink/target/store/default/test_table_multi_load";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + carbonTablePath, columns, false);
+        List<Tuple2<Void, Object[]>> retrievedDataSource = environment.createInput(carbonFlinkInputFormat
+                .getInputFormat()).collect();
+        System.out.println(retrievedDataSource.toString());
+        Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
+        Assert.assertEquals(retrievedDataSource.size(), 2 * recordCount);
+    }
+
+    @Ignore
+    @Test
+    public void testMultipleLoadForUniqueData() throws Exception {
+        ExecutionEnvironment environment = ExecutionEnvironment.getExecutionEnvironment();
+        String[] columns = {"ID", "country", "salary"};
+        String path = "/integration/flink/target/store-input/default/testtable";
+        CarbonDataFlinkInputFormat carbondataFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + path, columns, false);
+
+        DataSet<Tuple2<Void, Object[]>> dataSource = environment.createInput(carbondataFlinkInputFormat.getInputFormat());
+        dataSource.print();
+        long firstSourceRecordCount = dataSource.count();
+        Tuple2<Void,Object[]> inputRecord = dataSource.collect().iterator().next();
+
+        String[] columnTypes = {"Int", "String", "Long"};
+        String[] columnHeaders = {"ID", "country", "salary"};
+        String[] dimensionColumns = {"country"};
+
+        CacheProvider.getInstance().dropAllCache();
+        CarbonDataFlinkOutputFormat.CarbonDataOutputFormatBuilder outputFormat =
+                CarbonDataFlinkOutputFormat.buildCarbonDataOutputFormat()
+                        .setColumnNames(columnHeaders)
+                        .setColumnTypes(columnTypes)
+                        .setStorePath(getRootPath() + "/integration/flink/target/store")
+                        .setDatabaseName("default")
+                        .setTableName("test_table_multi_load_uniqdata")
+                        .setRecordCount(firstSourceRecordCount)
+                        .setDimensionColumns(dimensionColumns);
+
+        dataSource.output(outputFormat.finish());
+        environment.execute();
+
+        CacheProvider.getInstance().dropAllCache();
+        String secondloadFilePath = "/integration/flink/target/store-input/default/testtableuniquedata";
+        CarbonDataFlinkInputFormat carbonFlinkInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + secondloadFilePath, columns, false);
+
+        DataSet<Tuple2<Void, Object[]>> secondDataSource = environment.createInput(carbonFlinkInputFormat.getInputFormat());
+        long secondSourceRecordCount = secondDataSource.count();
+        secondDataSource.print();
+        CacheProvider.getInstance().dropAllCache();
+        CarbonDataFlinkOutputFormat.CarbonDataOutputFormatBuilder carbonOutputFormat =
+                CarbonDataFlinkOutputFormat.buildCarbonDataOutputFormat()
+                        .setColumnNames(columnHeaders)
+                        .setColumnTypes(columnTypes)
+                        .setStorePath(getRootPath() + "/integration/flink/target/store")
+                        .setDatabaseName("default")
+                        .setTableName("test_table_multi_load_uniqdata")
+                        .setRecordCount(secondSourceRecordCount)
+                        .setDimensionColumns(dimensionColumns);
+
+        secondDataSource.output(carbonOutputFormat.finish());
+        environment.execute();
+
+        CacheProvider.getInstance().dropAllCache();
+        String carbonTablePath = "/integration/flink/target/store/default/test_table_multi_load_uniqdata";
+        CarbonDataFlinkInputFormat carbondataInputFormat = new CarbonDataFlinkInputFormat(getRootPath()
+                + carbonTablePath, columns, false);
+        List<Tuple2<Void, Object[]>> retrievedDataSource = environment.createInput(carbondataInputFormat
+                .getInputFormat()).collect();
+        System.out.println(retrievedDataSource.toString());
+        Assert.assertTrue(retrievedDataSource.toString().contains(inputRecord.toString()));
+        Assert.assertEquals(retrievedDataSource.size(), firstSourceRecordCount + secondSourceRecordCount);
+    }
+
 }
