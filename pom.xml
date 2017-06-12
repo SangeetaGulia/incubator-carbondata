@@ -105,7 +105,7 @@
     <module>examples/flink</module>
     <module>integration/hive</module>
     <module>integration/presto</module>
-
+    <module>integration/flink</module>
   </modules>
 
   <properties>
