@@ -22,7 +22,8 @@ import org.apache.carbondata.common.CarbonIterator;
 import org.apache.carbondata.core.cache.Cache;
 import org.apache.carbondata.core.cache.CacheProvider;
 import org.apache.carbondata.core.cache.CacheType;
-import org.apache.carbondata.core.cache.dictionary.DictionaryColumnUniqueIdentifier;
+import org.apache.carbondata.core.cache.dictionary.*;
+import org.apache.carbondata.core.cache.dictionary.Dictionary;
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.datastore.impl.FileFactory;
 import org.apache.carbondata.core.fileoperations.AtomicFileOperations;
@@ -30,6 +31,7 @@ import org.apache.carbondata.core.fileoperations.AtomicFileOperationsImpl;
 import org.apache.carbondata.core.fileoperations.FileWriteOperation;
 import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
 import org.apache.carbondata.core.metadata.CarbonMetadata;
+import org.apache.carbondata.core.metadata.CarbonTableIdentifier;
 import org.apache.carbondata.core.metadata.ColumnIdentifier;
 import org.apache.carbondata.core.metadata.converter.SchemaConverter;
 import org.apache.carbondata.core.metadata.converter.ThriftWrapperSchemaConverterImpl;
@@ -44,7 +46,6 @@ import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonMeasure;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
-import org.apache.carbondata.core.reader.CarbonDictionaryColumnMetaChunk;
 import org.apache.carbondata.core.statusmanager.LoadMetadataDetails;
 import org.apache.carbondata.core.util.CarbonProperties;
 import org.apache.carbondata.core.util.CarbonUtil;
@@ -96,7 +97,7 @@ public class CarbondataStoreCreator {
                     absoluteTableIdentifier.getStorePath());
 
             CarbonTable table;
-            if(checkIfTableExists(absoluteTableIdentifier)) {
+            if (checkIfTableExists(absoluteTableIdentifier)) {
                 LOGGER.warning("Table Already Exists" + absoluteTableIdentifier.getCarbonTableIdentifier()
                         .getTableUniqueName());
                 table = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
@@ -105,10 +106,9 @@ public class CarbondataStoreCreator {
                         .getTableUniqueName());
                 table = createTable(absoluteTableIdentifier, columnNames, columnTypes, dimensionColumns);
             }
-            writeDictionary(factFilePath, table, absoluteTableIdentifier, dimensionColumns);
             CarbonLoadModel loadModel = initializeLoadModel(table, absoluteTableIdentifier, factFilePath, columnString);
+            writeDictionary(factFilePath, table, absoluteTableIdentifier, dimensionColumns);
             executeGraph(loadModel, absoluteTableIdentifier.getStorePath());
-            CacheProvider.getInstance().dropAllCache();
         } catch (Exception exception) {
             exception.printStackTrace();
         }
@@ -175,7 +175,7 @@ public class CarbondataStoreCreator {
             } else {
                 column.setDimensionColumn(false);
             }
-            if(column.getDataType() == org.apache.carbondata.core.metadata.datatype.DataType.DECIMAL) {
+            if (column.getDataType() == org.apache.carbondata.core.metadata.datatype.DataType.DECIMAL) {
                 column.setPrecision(DECIMAL_PRECISION);
                 column.setScale(DECIMAL_SCALE);
             }
@@ -198,8 +198,7 @@ public class CarbondataStoreCreator {
         return tableInfo;
     }
 
-    private void writeDictionary(String factFilePath, CarbonTable table, AbsoluteTableIdentifier absoluteTableIdentifier,
-                                 String[] dimensionColumns) throws Exception {
+    private void writeDictionary(String factFilePath, CarbonTable table, AbsoluteTableIdentifier absoluteTableIdentifier, String[] dimensionColumns) throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(factFilePath));
         List<CarbonColumn> allCols = new ArrayList<CarbonColumn>();
         List<CarbonDimension> dimensions = table.getDimensionByTableName(table.getFactTableName());
@@ -208,48 +207,66 @@ public class CarbondataStoreCreator {
         allCols.addAll(measures);
 
         Set<String>[] dimensionSet = createDimensionDataSet(dimensions, dimensionColumns, reader, factFilePath);
-
         // writeDictionaryToFile
         for (int i = 0; i < dimensionSet.length; i++) {
-            ColumnIdentifier columnIdentifier = new ColumnIdentifier(dimensions.get(i).getColumnId(),
-                    null, null);
+            org.apache.carbondata.core.cache.dictionary.Dictionary dictionary = null;
+            DataType dimensionDatatype = dimensions.get(i).getDataType();
+            ColumnIdentifier columnIdentifier = new ColumnIdentifier(dimensions.get(i).getColumnId(), null, null);
             CarbonDictionaryWriter writer = new CarbonDictionaryWriterImpl(absoluteTableIdentifier.getStorePath(),
                     absoluteTableIdentifier.getCarbonTableIdentifier(), columnIdentifier);
-            for (String value : dimensionSet[i]) {
-                writer.write(value);
+            if(!isDictionaryFileExists(absoluteTableIdentifier, columnIdentifier, table)) {
+                LOGGER.info("------ Dictionary file does not exist : First Time Load ------");
+                for (String value : dimensionSet[i]) {
+                    writer.write(value);
+                }
+                writer.close();
+                writer.commit();
+                Cache <DictionaryColumnUniqueIdentifier, org.apache.carbondata.core.cache.dictionary.Dictionary > dictCache =
+                        CacheProvider.getInstance().createCache(CacheType.REVERSE_DICTIONARY, absoluteTableIdentifier.getStorePath());
+                dictionary = dictCache.get(new DictionaryColumnUniqueIdentifier(absoluteTableIdentifier
+                        .getCarbonTableIdentifier(), columnIdentifier, dimensionDatatype));
+            } else {
+                LOGGER.info("------ Dictionary file exists : Multi-Load Scenario ------");
+                for (String value : dimensionSet[i]) {
+                    dictionary = getDictionary(table.getCarbonTableIdentifier(), columnIdentifier, absoluteTableIdentifier
+                            .getStorePath(), dimensionDatatype);
+                    if (dictionary.getSurrogateKey(value) == CarbonCommonConstants.INVALID_SURROGATE_KEY) {
+                        writer.write(value);
+                    }
+                }
+                writer.close();
+                writer.commit();
             }
-            writer.close();
-            writer.commit();
-
             // SortIndexWriter
-            DataType dimensionDatatype = dimensions.get(i).getDataType();
-            writeSortIndex(absoluteTableIdentifier, columnIdentifier, dimensionDatatype);
+            writeSortIndex(absoluteTableIdentifier, columnIdentifier, dimensionDatatype , dictionary);
         }
         reader.close();
     }
 
-    private void getNextSegmentCount() {
-
+    private org.apache.carbondata.core.cache.dictionary.Dictionary getDictionary(
+            CarbonTableIdentifier tableIdentifier, ColumnIdentifier columnIdentifier, String
+            carbonStorePath, DataType dataType) throws IOException {
+        DictionaryColumnUniqueIdentifier dictionaryColumnUniqueIdentifier =
+                new DictionaryColumnUniqueIdentifier(tableIdentifier, columnIdentifier, dataType);
+        Cache<DictionaryColumnUniqueIdentifier, Dictionary> dictCache =
+                CacheProvider.getInstance().createCache(CacheType.REVERSE_DICTIONARY, carbonStorePath);
+        return dictCache.get(dictionaryColumnUniqueIdentifier);
     }
 
-    private void isIncrementalLoad() {
-
-    }
-
-    private void updateDictionaryOnIncrementalLoad() {
-
+    private boolean isDictionaryFileExists(AbsoluteTableIdentifier absoluteTableIdentifier, ColumnIdentifier
+            columnIdentifier, CarbonTable table) throws IOException {
+        String storeLocation = absoluteTableIdentifier.getStorePath();
+        String databaseName = table.getDatabaseName();
+        String tableName = table.getTableUniqueName().replace(databaseName+ "_", "");
+        String dictionaryPath = storeLocation + "/" + databaseName + "/" + tableName + "/Metadata/" + columnIdentifier.getColumnId() + ".dict";
+        return CarbonUtil.isFileExists(dictionaryPath);
     }
 
     private void writeSortIndex(AbsoluteTableIdentifier absoluteTableIdentifier, ColumnIdentifier columnIdentifier,
-                                DataType dimensionDatatype) throws IOException {
-        Cache<DictionaryColumnUniqueIdentifier, org.apache.carbondata.core.cache.dictionary.Dictionary> dictCache =
-                CacheProvider.getInstance().createCache(CacheType.REVERSE_DICTIONARY,
-                        absoluteTableIdentifier.getStorePath());
-        org.apache.carbondata.core.cache.dictionary.Dictionary dict = dictCache.get(new DictionaryColumnUniqueIdentifier(absoluteTableIdentifier.getCarbonTableIdentifier(),
-                columnIdentifier, dimensionDatatype));
+                                DataType dimensionDatatype,Dictionary dictionary) throws IOException {
         CarbonDictionarySortInfoPreparator preparator = new CarbonDictionarySortInfoPreparator();
         List<String> newDistinctValues = new ArrayList<>();
-        CarbonDictionarySortInfo dictionarySortInfo = preparator.getDictionarySortInfo(newDistinctValues, dict,
+        CarbonDictionarySortInfo dictionarySortInfo = preparator.getDictionarySortInfo(newDistinctValues, dictionary,
                 dimensionDatatype);
         CarbonDictionarySortIndexWriter carbonDictionaryWriter = new CarbonDictionarySortIndexWriterImpl(
                 absoluteTableIdentifier.getCarbonTableIdentifier(), columnIdentifier,
@@ -390,7 +407,7 @@ public class CarbondataStoreCreator {
             case "long":
                 return DataType.LONG;
             default:
-                if(type.toLowerCase().startsWith("decimal")) {
+                if (type.toLowerCase().startsWith("decimal")) {
                     try {
                         String precisionAndScaleStr = type.toLowerCase().substring(8, type.length() - 1);
                         String[] precisionAndScale = precisionAndScaleStr.split(",");
@@ -400,7 +417,7 @@ public class CarbondataStoreCreator {
                         throw new Exception("Decimal Scale or precision is not specified");
                     }
                     return DataType.DECIMAL;
-                }else {
+                } else {
                     return DataType.NULL;
                 }
         }
