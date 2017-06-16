@@ -101,7 +101,7 @@ object ParquetPerformanceTPCH {
 
     // Create table REGION
 
-/*    LOGGER.info("\n\n --------------------------- Creating table REGION ---------------------------------")
+    LOGGER.info("\n\n --------------------------- Creating table REGION ---------------------------------")
     spark.sql(
       """
         |drop table if exists REGIONTEXTFILE
@@ -422,7 +422,7 @@ object ParquetPerformanceTPCH {
         | O_CUSTKEY INT ,
         | O_ORDERSTATUS STRING ,
         | O_TOTALPRICE DECIMAL(15,2) ,
-        | O_ORDERDATE TIMESTAMP ,
+        | O_ORDERDATE Date ,
         | O_ORDERPRIORITY STRING ,
         | O_CLERK STRING ,
         | O_SHIPPRIORITY INT ,
@@ -436,7 +436,7 @@ object ParquetPerformanceTPCH {
          | O_CUSTKEY INT ,
          | O_ORDERSTATUS STRING ,
          | O_TOTALPRICE DECIMAL(15,2) ,
-         | O_ORDERDATE TIMESTAMP ,
+         | O_ORDERDATE Date ,
          | O_ORDERPRIORITY STRING ,
          | O_CLERK STRING ,
          | O_SHIPPRIORITY INT ,
@@ -458,7 +458,7 @@ object ParquetPerformanceTPCH {
     spark.sql(
       """
         |select * from ORDERS
-      """.stripMargin).show()*/
+      """.stripMargin).show()
 
     LOGGER.info("\n\n --------------------------- Creating table LINEITEM ---------------------------------")
 
@@ -485,9 +485,9 @@ object ParquetPerformanceTPCH {
         | L_TAX DECIMAL(15,2) ,
         | L_RETURNFLAG STRING ,
         | L_LINESTATUS STRING ,
-        | L_SHIPDATE TIMESTAMP ,
-        | L_COMMITDATE TIMESTAMP ,
-        | L_RECEIPTDATE TIMESTAMP ,
+        | L_SHIPDATE Date ,
+        | L_COMMITDATE Date ,
+        | L_RECEIPTDATE Date ,
         | L_SHIPINSTRUCT STRING ,
         | L_SHIPMODE STRING ,
         | L_COMMENT STRING ) stored as parquet
@@ -506,9 +506,9 @@ object ParquetPerformanceTPCH {
          | L_TAX DECIMAL(15,2) ,
          | L_RETURNFLAG STRING ,
          | L_LINESTATUS STRING ,
-         | L_SHIPDATE TIMESTAMP ,
-         | L_COMMITDATE TIMESTAMP ,
-         | L_RECEIPTDATE TIMESTAMP ,
+         | L_SHIPDATE Date ,
+         | L_COMMITDATE Date ,
+         | L_RECEIPTDATE Date ,
          | L_SHIPINSTRUCT STRING ,
          | L_SHIPMODE STRING ,
          | L_COMMENT STRING ) row format delimited fields terminated by '|' stored as textfile
@@ -994,7 +994,6 @@ object ParquetPerformanceTPCH {
         |    s_suppkey IN (select ps_suppkey from tmp5)
         |order by s_name""".stripMargin
     )
-/*
 
     Try {
       evaluateTimeForQuery(queryList, spark)
@@ -1009,7 +1008,6 @@ object ParquetPerformanceTPCH {
         exception.printStackTrace()
         println(" Exception occured " + exception.getMessage)
     }
-*/
 
     spark.stop()
   }
