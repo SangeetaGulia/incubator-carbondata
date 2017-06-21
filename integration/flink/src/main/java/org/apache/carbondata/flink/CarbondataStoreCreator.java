@@ -68,6 +68,7 @@ import org.apache.carbondata.processing.model.CarbonDataLoadSchema;
 import org.apache.carbondata.processing.model.CarbonLoadModel;
 import org.apache.carbondata.processing.newflow.DataLoadExecutor;
 import org.apache.carbondata.processing.newflow.constants.DataLoadProcessorConstants;
+import org.apache.carbondata.processing.newflow.exception.BadRecordFoundException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -358,7 +359,7 @@ public class CarbondataStoreCreator {
         loadModel.setDefaultDateFormat(null);
         loadModel.setSerializationNullFormat(TableOptionConstant.SERIALIZATION_NULL_FORMAT.getName() + "," + "\\N");
         loadModel.setBadRecordsLoggerEnable(TableOptionConstant.BAD_RECORDS_LOGGER_ENABLE.getName() + "," + "false");
-        loadModel.setBadRecordsAction(TableOptionConstant.BAD_RECORDS_ACTION.getName() + "," + "FAIL");
+        loadModel.setBadRecordsAction(TableOptionConstant.BAD_RECORDS_ACTION.getName() + "," + "FORCE");
         loadModel.setIsEmptyDataBadRecord(DataLoadProcessorConstants.IS_EMPTY_DATA_BAD_RECORD + "," + "false");
         loadModel.setCsvHeader(columnString);
         loadModel.setCsvHeaderColumns(loadModel.getCsvHeader().split(","));
@@ -402,7 +403,11 @@ public class CarbondataStoreCreator {
                     "/tmp" + '/' + System.nanoTime(),                                    //tmp location
                     new CarbonIterator[]{readerIterator});
         } else {
-            new DataLoadExecutor().execute(loadModel, storeLocation, new CarbonIterator[]{readerIterator});
+            try {
+                new DataLoadExecutor().execute(loadModel, storeLocation, new CarbonIterator[]{readerIterator});
+            }catch (BadRecordFoundException exception){
+                System.out.println("Bad record found");
+            }
         }
 
         info.setDatabaseName(databaseName);
