@@ -16,67 +16,77 @@
  */
 package org.apache.carbondata.core.indexstore;
 
-import java.io.IOException;
-
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
+import org.apache.carbondata.core.datastore.impl.CarbonS3FileSystem;
 import org.apache.carbondata.core.datastore.impl.FileFactory;
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
+
+import java.io.IOException;
 
 /**
  * Detailed blocklet information
  */
 public class ExtendedBlocklet extends Blocklet {
 
-  private String segmentId;
+    private String segmentId;
 
-  private BlockletDetailInfo detailInfo;
+    private BlockletDetailInfo detailInfo;
 
-  private long length;
+    private long length;
 
-  private String[] location;
+    private String[] location;
 
-  public ExtendedBlocklet(String path, String blockletId) {
-    super(path, blockletId);
-  }
+    public ExtendedBlocklet(String path, String blockletId) {
+        super(path, blockletId);
+    }
 
-  public BlockletDetailInfo getDetailInfo() {
-    return detailInfo;
-  }
+    public BlockletDetailInfo getDetailInfo() {
+        return detailInfo;
+    }
 
-  public void setDetailInfo(BlockletDetailInfo detailInfo) {
-    this.detailInfo = detailInfo;
-  }
+    public void setDetailInfo(BlockletDetailInfo detailInfo) {
+        this.detailInfo = detailInfo;
+    }
 
-  /**
-   * It gets the hdfs block locations and length for this blocklet. It is used internally to get the
-   * locations for allocating tasks.
-   * @throws IOException
-   */
-  public void updateLocations() throws IOException {
-    Path path = new Path(getPath());
-    FileSystem fs = path.getFileSystem(FileFactory.getConfiguration());
-    RemoteIterator<LocatedFileStatus> iter = fs.listLocatedStatus(path);
-    LocatedFileStatus fileStatus = iter.next();
-    location = fileStatus.getBlockLocations()[0].getHosts();
-    length = fileStatus.getLen();
-  }
+    /**
+     * It gets the hdfs block locations and length for this blocklet. It is used internally to get the
+     * locations for allocating tasks.
+     *
+     * @throws IOException
+     */
+    public void updateLocations() throws IOException {
+        Path path = new Path(getPath());
+        RemoteIterator<LocatedFileStatus> iter;
+        FileSystem fs;
+        if (path.toString().startsWith(CarbonCommonConstants.S3URL_PREFIX)) {
+            fs = new CarbonS3FileSystem();
+            fs.initialize(path.toUri(), FileFactory.getConfiguration());
+            iter = fs.listLocatedStatus(path.getParent());
+        } else {
+            fs = path.getFileSystem(FileFactory.getConfiguration());
+            iter = fs.listLocatedStatus(path);
+        }
+        LocatedFileStatus fileStatus = iter.next();
+        location = fileStatus.getBlockLocations()[0].getHosts();
+        length = fileStatus.getLen();
+    }
 
-  public String[] getLocations() throws IOException {
-    return location;
-  }
+    public String[] getLocations() throws IOException {
+        return location;
+    }
 
-  public long getLength() throws IOException {
-    return length;
-  }
+    public long getLength() throws IOException {
+        return length;
+    }
 
-  public String getSegmentId() {
-    return segmentId;
-  }
+    public String getSegmentId() {
+        return segmentId;
+    }
 
-  public void setSegmentId(String segmentId) {
-    this.segmentId = segmentId;
-  }
+    public void setSegmentId(String segmentId) {
+        this.segmentId = segmentId;
+    }
 }
