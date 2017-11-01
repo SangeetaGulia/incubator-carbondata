@@ -1409,7 +1409,7 @@ public final class CarbonCommonConstants {
   public static final String S3_USE_INSTANCE_CREDENTIALS = "carbon.s3.use-instance-credentials";
   public static final String S3_PIN_CLIENT_TO_CURRENT_REGION = "carbon.s3.pin-client-to-current-region";
   public static final String S3_ENCRYPTION_MATERIALS_PROVIDER = "carbon.s3.encryption-materials-provider";
-  public static final String S3_KMS_KEY_ID = "carbon.s3.kms-key-id";
+  public static final String S3_DES_KEY = "carbon.s3.des-key";
   public static final String S3_SSE_KMS_KEY_ID = "carbon.s3.sse.kms-key-id";
   public static final String S3_SSE_ENABLED = "carbon.s3.sse.enabled";
   public static final String S3_SSE_TYPE = "carbon.s3.sse.type";
