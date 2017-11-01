@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.apache.carbondata.common.logging.LogService;
 import org.apache.carbondata.common.logging.LogServiceFactory;
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
@@ -704,6 +705,8 @@ public class SegmentUpdateStatusManager {
       listOfSegmentUpdateDetailsArray =
           gsonObjectToRead.fromJson(buffReader, SegmentUpdateDetails[].class);
     } catch (IOException e) {
+      return new SegmentUpdateDetails[0];
+    } catch (AmazonS3Exception exception) {
       return new SegmentUpdateDetails[0];
     } finally {
       closeStreams(buffReader, inStream, dataInputStream);
