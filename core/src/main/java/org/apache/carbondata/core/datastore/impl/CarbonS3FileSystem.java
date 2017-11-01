@@ -336,6 +336,16 @@ public class CarbonS3FileSystem extends FileSystem {
         return true;
     }
 
+    @Override public void close() throws IOException {
+        try {
+            super.close();
+        } finally {
+            if (s3 instanceof AmazonS3Client) {
+                ((AmazonS3Client) s3).shutdown();
+            }
+        }
+    }
+
     @Override
     public FileStatus getFileStatus(Path path) throws IOException {
         if (path.getName().isEmpty()) {
@@ -675,6 +685,5 @@ public class CarbonS3FileSystem extends FileSystem {
             }
         }
     }
-
 
 }
