@@ -16,7 +16,7 @@
  */
 package org.apache.carbondata.core.locks;
 
-import java.io.DataOutputStream;
+/*import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -391,4 +391,4 @@ public class S3FileLockTest {
     assertFalse(s3FileLock.unlock());
   }
 
-}
+}*/

@@ -16,6 +16,7 @@
  */
 
 package org.apache.carbondata.core.datastore.filesystem;
+/*
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -92,10 +93,12 @@ public class S3CarbonFile implements CarbonFile {
     }
   }
 
-  /**
+  */
+/**
    * @param listStatus
    * @return
-   */
+   *//*
+
   private CarbonFile[] getFiles(FileStatus[] listStatus) {
     if (listStatus == null) {
       return new CarbonFile[0];
@@ -443,3 +446,4 @@ public class S3CarbonFile implements CarbonFile {
     return fileStatus.getModificationTime();
   }
 }
+*/

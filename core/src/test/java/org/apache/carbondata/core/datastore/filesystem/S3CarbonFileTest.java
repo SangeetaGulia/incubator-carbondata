@@ -16,6 +16,7 @@
   */
 
 package org.apache.carbondata.core.datastore.filesystem;
+/*
 
 import mockit.Mock;
 import mockit.MockUp;
@@ -460,4 +461,4 @@ public class S3CarbonFileTest {
         assertTrue(s3CarbonFile.truncate("/toTruncate", 120L));
     }
 
-}
+}*/

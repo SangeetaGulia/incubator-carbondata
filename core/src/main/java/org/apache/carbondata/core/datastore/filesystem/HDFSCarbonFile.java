@@ -39,6 +39,7 @@ public class HDFSCarbonFile extends AbstractDFSCarbonFile {
       LogServiceFactory.getLogService(HDFSCarbonFile.class.getName());
 
   public HDFSCarbonFile(String filePath) {
+
     super(filePath);
   }
 
