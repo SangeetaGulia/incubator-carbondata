@@ -20,6 +20,7 @@ package org.apache.carbondata.presto.readers;
 import java.io.IOException;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -90,13 +91,12 @@ public class BooleanStreamReader extends AbstractStreamReader {
 
   private void populateDictionaryVector(Type type, int numberOfRows, BlockBuilder builder) {
     for (int i = 0; i < numberOfRows; i++) {
-      int value = (int) columnVector.getData(i);
-      Object data = DataTypeUtil
-          .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.BOOLEAN);
-      if (data != null) {
-        type.writeBoolean(builder,(boolean) data);
-      } else {
+      int dictKey = (int)columnVector.getData(i);
+      String dictionaryValue = dictionary.getDictionaryValueForKey(dictKey);
+      if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
         builder.appendNull();
+      } else {
+          type.writeBoolean(builder, Boolean.parseBoolean(dictionaryValue));
       }
     }
   }
@@ -105,5 +105,6 @@ public class BooleanStreamReader extends AbstractStreamReader {
     byte byteValue = (byte)value;
     return byteValue == 1;
   }
+
 }
 

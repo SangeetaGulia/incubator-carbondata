@@ -316,6 +316,7 @@ class PrestoAllDataTypeTest extends FunSuiteLike with BeforeAndAfterAll {
       "SERIALNAME" -> "ASD69643",
       "COUNTRY" -> "china",
       "PHONETYPE" -> "phone197"))
+    println(actualResult)
     assert(actualResult.toString().equals(expectedResult.toString()))
   }
   test("test the result for in clause") {

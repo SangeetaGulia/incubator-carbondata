@@ -41,7 +41,7 @@ object HiveExample {
     var resultSalary = ""
 
 
-    import org.apache.spark.sql.CarbonSession._
+    /*import org.apache.spark.sql.CarbonSession._
 
     val carbonSession = SparkSession
       .builder()
@@ -67,7 +67,7 @@ object HiveExample {
            """)
     carbonSession.sql("SELECT * FROM HIVE_CARBON_EXAMPLE").show()
 
-    carbonSession.stop()
+    carbonSession.stop()*/
 
     try {
       Class.forName(driverName)
@@ -83,7 +83,7 @@ object HiveExample {
     val connection = DriverManager.getConnection(s"jdbc:hive2://localhost:$port/default", "", "")
     val statement: Statement = connection.createStatement
 
-    logger.info(s"============HIVE CLI IS STARTED ON PORT $port ==============")
+    /*logger.info(s"============HIVE CLI IS STARTED ON PORT $port ==============")
 
     statement.execute("CREATE TABLE IF NOT EXISTS " + "HIVE_CARBON_EXAMPLE " +
                       " (ID int, NAME string,SALARY double)")
@@ -190,7 +190,7 @@ object HiveExample {
         println("+---+" + "+-------+" + "+--------------+")
       }
       outOfOrderColFetched = outOfOrderColFetched + 1
-    }
+    }*/
     hiveEmbeddedServer2.stop()
     System.exit(0)
   }

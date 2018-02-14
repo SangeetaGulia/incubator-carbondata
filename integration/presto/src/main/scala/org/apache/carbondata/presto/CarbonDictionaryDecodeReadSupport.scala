@@ -71,9 +71,6 @@ class CarbonDictionaryDecodeReadSupport[T] extends CarbonReadSupport[T] {
         }
       }
 
-      else {
-        dataTypes(index) = carbonColumn.getDataType
-      }
     }
 
   }

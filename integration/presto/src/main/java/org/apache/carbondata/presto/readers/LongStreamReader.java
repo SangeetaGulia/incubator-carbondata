@@ -20,6 +20,7 @@ package org.apache.carbondata.presto.readers;
 import java.io.IOException;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -49,7 +50,7 @@ public class LongStreamReader extends AbstractStreamReader {
       numberOfRows = batchSize;
       builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (columnVector != null) {
-        if(isDictionary) {
+        if (isDictionary) {
           populateDictionaryVector(type, numberOfRows, builder);
         }
         if (columnVector.anyNullsSet()) {
@@ -82,20 +83,32 @@ public class LongStreamReader extends AbstractStreamReader {
 
   private void populateVector(Type type, int numberOfRows, BlockBuilder builder) {
     for (int i = 0; i < numberOfRows; i++) {
-        type.writeLong(builder, (long) columnVector.getData(i));
+      type.writeLong(builder, (long) columnVector.getData(i));
     }
   }
 
   private void populateDictionaryVector(Type type, int numberOfRows, BlockBuilder builder) {
     for (int i = 0; i < numberOfRows; i++) {
-        int value = (int) columnVector.getData(i);
-        Object data = DataTypeUtil
-            .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.LONG);
-        if (data != null) {
-          type.writeLong(builder, (Long) data);
-        } else {
+      int dictKey = (int) columnVector.getData(i);
+      String dictionaryValue =dictionary.getDictionaryValueForKey(dictKey);
+      if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
+        builder.appendNull();
+      } else {
+        Long longValue = parseLong(dictionaryValue);
+        if(longValue!=null) {
+          type.writeLong(builder,longValue);
+        }
+        else{
           builder.appendNull();
         }
       }
     }
+  }
+  private Long parseLong(String rawValue) {
+    try {
+      return Long.parseLong(rawValue);
+    } catch (NumberFormatException numberFormatException) {
+      return null;
+    }
+  }
 }

@@ -20,6 +20,7 @@ package org.apache.carbondata.presto.readers;
 import java.io.IOException;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -59,7 +60,7 @@ public class DoubleStreamReader extends AbstractStreamReader {
       numberOfRows = batchSize;
       builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (columnVector != null) {
-        if(isDictionary) {
+        if (isDictionary) {
           populateDictionaryVector(type, numberOfRows, builder);
         } else {
           if (columnVector.anyNullsSet()) {
@@ -100,14 +101,25 @@ public class DoubleStreamReader extends AbstractStreamReader {
 
   private void populateDictionaryVector(Type type, int numberOfRows, BlockBuilder builder) {
     for (int i = 0; i < numberOfRows; i++) {
-      int value = (int) columnVector.getData(i);
-      Object data = DataTypeUtil
-          .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.DOUBLE);
-      if (data != null) {
-        type.writeDouble(builder, (Double) data);
-      } else {
+      int dictKey = (int) columnVector.getData(i);
+      String dictionaryValue = dictionary.getDictionaryValueForKey(dictKey);
+      if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
         builder.appendNull();
+      } else {
+        Double doubleValue = parseDouble(dictionaryValue);
+        if (doubleValue != null) {
+          type.writeDouble(builder, doubleValue);
+        } else {
+          builder.appendNull();
+        }
       }
+    }
+  }
+  private Double parseDouble(String rawValue) {
+    try {
+      return Double.valueOf(rawValue);
+    } catch (NumberFormatException numberFormatException) {
+      return null;
     }
   }
 }

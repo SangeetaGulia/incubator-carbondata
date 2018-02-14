@@ -20,6 +20,7 @@ package org.apache.carbondata.presto.readers;
 import java.io.IOException;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -49,7 +50,7 @@ public class ShortStreamReader extends AbstractStreamReader {
       numberOfRows = batchSize;
       builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (columnVector != null) {
-        if(isDictionary) {
+        if (isDictionary) {
           populateDictionaryVector(type, numberOfRows, builder);
         } else {
           if (columnVector.anyNullsSet()) {
@@ -59,7 +60,7 @@ public class ShortStreamReader extends AbstractStreamReader {
           }
         }
       }
-   } else {
+    } else {
       numberOfRows = streamData.length;
       builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (streamData != null) {
@@ -89,15 +90,27 @@ public class ShortStreamReader extends AbstractStreamReader {
 
   private void populateDictionaryVector(Type type, int numberOfRows, BlockBuilder builder) {
     for (int i = 0; i < numberOfRows; i++) {
-      int value = (int) columnVector.getData(i);
-      Object data = DataTypeUtil
-          .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.SHORT);
-      if (data != null) {
-        type.writeLong(builder, (Short) data);
-      } else {
+      int dictKey = (int) columnVector.getData(i);
+      String dictionaryValue =dictionary.getDictionaryValueForKey(dictKey);
+      if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
         builder.appendNull();
+      } else {
+        Short shortValue = parseShort(dictionaryValue);
+        if(shortValue!=null) {
+          type.writeLong(builder,shortValue);
+        }
+        else{
+          builder.appendNull();
+        }
       }
     }
   }
 
+  private Short parseShort(String rawValue) {
+    try {
+      return Short.valueOf(rawValue);
+    } catch (NumberFormatException numberFormatException) {
+      return null;
+    }
+  }
 }

@@ -20,6 +20,7 @@ package org.apache.carbondata.presto.readers;
 import java.io.IOException;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -30,7 +31,7 @@ import com.facebook.presto.spi.type.Type;
 
 public class IntegerStreamReader extends AbstractStreamReader {
 
-  private Dictionary dictionaryValues;
+  private Dictionary dictionary;
   private boolean isDictionary;
 
   public IntegerStreamReader() {
@@ -38,7 +39,7 @@ public class IntegerStreamReader extends AbstractStreamReader {
   }
 
   public IntegerStreamReader(boolean isDictionary, Dictionary dictionary) {
-    this.dictionaryValues = dictionary;
+    this.dictionary = dictionary;
     this.isDictionary = isDictionary;
   }
 
@@ -49,7 +50,7 @@ public class IntegerStreamReader extends AbstractStreamReader {
       numberOfRows = batchSize;
       builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (columnVector != null) {
-        if(isDictionary) {
+        if (isDictionary) {
           populateDictionaryVector(type, numberOfRows, builder);
         } else {
           if (columnVector.anyNullsSet()) {
@@ -82,23 +83,33 @@ public class IntegerStreamReader extends AbstractStreamReader {
   }
 
   private void populateVector(Type type, int numberOfRows, BlockBuilder builder) {
-      for (int i = 0; i < numberOfRows; i++) {
-        Integer value = (Integer) columnVector.getData(i);
-        type.writeLong(builder, value.longValue());
-      }
+    for (int i = 0; i < numberOfRows; i++) {
+      Integer value = (Integer) columnVector.getData(i);
+      type.writeLong(builder, value.longValue());
+    }
   }
 
   private void populateDictionaryVector(Type type, int numberOfRows, BlockBuilder builder) {
-      for (int i = 0; i < numberOfRows; i++) {
-        int value = (int) columnVector.getData(i);
-        Object data = DataTypeUtil
-            .getDataBasedOnDataType(dictionaryValues.getDictionaryValueForKey(value),
-                DataTypes.INT);
-        if (data != null) {
-          type.writeLong(builder, ((Integer) data).longValue());
+    for (int i = 0; i < numberOfRows; i++) {
+      int dictKey = (int) columnVector.getData(i);
+      String dictionaryValue = dictionary.getDictionaryValueForKey(dictKey);
+      if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
+        builder.appendNull();
+      } else {
+        Integer intValue = parseInteger(dictionaryValue);
+        if (intValue != null) {
+          type.writeLong(builder, intValue);
         } else {
           builder.appendNull();
         }
       }
+    }
+  }
+  private Integer parseInteger(String rawValue) {
+    try {
+      return Integer.parseInt(rawValue);
+    } catch (NumberFormatException numberFormatException) {
+      return null;
+    }
   }
 }

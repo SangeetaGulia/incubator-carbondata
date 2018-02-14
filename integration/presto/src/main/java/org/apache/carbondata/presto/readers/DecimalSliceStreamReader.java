@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.util.Objects;
 
 import org.apache.carbondata.core.cache.dictionary.Dictionary;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.util.DataTypeUtil;
 
@@ -214,16 +215,21 @@ public class DecimalSliceStreamReader  extends AbstractStreamReader {
 
     if (isDictionary) {
       for (int i = 0; i < numberOfRows; i++) {
-        int value = (int)columnVector.getData(i);
-        Object data = DataTypeUtil
-            .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.createDecimalType(decimalType.getPrecision(), decimalType.getScale()));
-        if(Objects.isNull(data)) {
+        int dictKey = (int)columnVector.getData(i);
+        String dictionaryValue = dictionary.getDictionaryValueForKey(dictKey);
+        if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
           builder.appendNull();
-        } else {
-          BigDecimal decimalValue = (BigDecimal) data;
-          long rescaledDecimal =
-              Decimals.rescale(decimalValue.unscaledValue().longValue(), decimalValue.scale(),decimalType.getScale());
-          type.writeLong(builder, rescaledDecimal);
+        }
+         else {
+          BigDecimal decimalValue = parseDecimal(dictionaryValue);
+          if (decimalValue != null) {
+            long rescaledDecimal = Decimals
+                .rescale(decimalValue.unscaledValue().longValue(), decimalValue.scale(), decimalType.getScale());
+            type.writeLong(builder, rescaledDecimal);
+          }
+          else{
+            builder.appendNull();
+          }
         }
       }
     } else {
@@ -236,19 +242,30 @@ public class DecimalSliceStreamReader  extends AbstractStreamReader {
     }
   }
 
+  private BigDecimal parseDecimal(String rawValue){
+    try {
+      return new BigDecimal(rawValue);
+    } catch (NumberFormatException numberFormatException) {
+      return null;
+    }
+
+  }
   private void populateLongDecimalVector(Type type, int numberOfRows, BlockBuilder builder) {
     if (isDictionary) {
       for (int i = 0; i < numberOfRows; i++) {
-        int value = (int) columnVector.getData(i);
-        DecimalType decimalType = (DecimalType) type;
-        Object data = DataTypeUtil
-            .getDataBasedOnDataType(dictionary.getDictionaryValueForKey(value), DataTypes.createDecimalType(decimalType.getPrecision(), decimalType.getScale()));
-        if(Objects.isNull(data)) {
+        int dictKey = (int)columnVector.getData(i);
+        String dictionaryValue = dictionary.getDictionaryValueForKey(dictKey);
+        if (dictionaryValue.equals(CarbonCommonConstants.MEMBER_DEFAULT_VAL)) {
           builder.appendNull();
         } else {
-          BigDecimal decimalValue = (BigDecimal) data;
-          Slice slice = getSlice(decimalValue, type);
-          type.writeSlice(builder, parseSlice((DecimalType) type, slice, 0, slice.length()));
+          BigDecimal decimalValue = parseDecimal(dictionaryValue);
+          if (decimalValue != null) {
+            Slice slice = getSlice(decimalValue, type);
+            type.writeSlice(builder, parseSlice((DecimalType) type, slice, 0, slice.length()));
+          }
+          else {
+            builder.appendNull();
+          }
         }
       }
     } else {
