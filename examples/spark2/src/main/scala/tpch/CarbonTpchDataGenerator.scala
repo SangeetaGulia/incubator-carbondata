@@ -2,11 +2,14 @@ package tpch
 
 import java.io.File
 
+import org.apache.carbondata.core.constants.CarbonCommonConstants
+import org.apache.carbondata.core.util.CarbonProperties
+
 object CarbonTpchDataGenerator {
   def main(args: Array[String]) {
     val rootPath = new File(this.getClass.getResource("/").getPath
                             + "../../../..").getCanonicalPath
-    val storeLocation = s"$rootPath/integration/presto/target/store"
+    val storeLocation = s"hdfs://localhost:54311/prestoCarbonStore"
     val warehouse = s"$rootPath/integration/presto/target/warehouse"
     val metastoredb = s"$rootPath/integration/presto/target/metastore_db"
     val csvPath = "/home/anubhav/Downloads/dbgen"
@@ -22,7 +25,15 @@ object CarbonTpchDataGenerator {
       .getOrCreateCarbonSession(
         s"$storeLocation", metastoredb)
 
-    carbon.sql("DROP TABLE IF EXISTS NATION")
+    CarbonProperties.getInstance().addProperty(CarbonCommonConstants.LOCK_TYPE,CarbonCommonConstants.CARBON_LOCK_TYPE_HDFS)
+    CarbonProperties.getInstance().addProperty(CarbonCommonConstants.ENABLE_UNSAFE_IN_QUERY_EXECUTION,"true")
+
+   carbon.sql("DROP TABLE IF EXISTS NATION")
+
+   /* carbon.sql("select sum(l_extendedprice) / 7.0 as avg_yearly from lineitem ,part where " +
+               "p_partkey = l_partkey and p_brand = 'Brand#23' and p_container = 'MED BOX' and " +
+               "l_quantity < ( select 0.2 * avg(l_quantity) from lineitem where l_partkey = " +
+               "p_partkey )").show()*/
 
     carbon
       .sql(

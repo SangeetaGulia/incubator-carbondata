@@ -19,15 +19,14 @@ package org.apache.carbondata.presto.readers;
 
 import java.io.IOException;
 
-import org.apache.carbondata.core.metadata.datatype.DataTypes;
-import org.apache.carbondata.core.util.DataTypeUtil;
-
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.DictionaryBlock;
 import com.facebook.presto.spi.block.SliceArrayBlock;
+import com.facebook.presto.spi.block.VariableWidthBlock;
 import com.facebook.presto.spi.type.Type;
+import io.airlift.slice.Slices;
 
 import static io.airlift.slice.Slices.utf8Slice;
 import static io.airlift.slice.Slices.wrappedBuffer;
@@ -61,22 +60,15 @@ public class SliceStreamReader extends AbstractStreamReader {
     BlockBuilder builder;
     if (isVectorReader) {
       numberOfRows = batchSize;
-      builder = type.createBlockBuilder(new BlockBuilderStatus(), numberOfRows);
       if (columnVector != null) {
         if (isDictionary) {
           int[] values = new int[numberOfRows];
           for (int i = 0; i < numberOfRows; i++) {
-            if (!columnVector.isNullAt(i)) {
               values[i] = (Integer) columnVector.getData(i);
-            }
           }
           return new DictionaryBlock(batchSize, dictionarySliceArrayBlock, values);
         } else {
-          if(columnVector.anyNullsSet()) {
-            handleNullInVector(type, numberOfRows, builder);
-          } else {
-            populateVector(type, numberOfRows, builder);
-          }
+          return new VariableWidthBlock(batchSize, Slices.wrappedBuffer((byte[])columnVector.getStringData()), columnVector.getOffsetVector(), columnVector.getIsNullVector());
         }
       }
     } else {
@@ -87,28 +79,10 @@ public class SliceStreamReader extends AbstractStreamReader {
           type.writeSlice(builder, utf8Slice(streamData[i].toString()));
         }
       }
+      return builder.build();
     }
 
-    return builder.build();
+    return null;
   }
-
-  private void handleNullInVector(Type type, int numberOfRows, BlockBuilder builder) {
-    for (int i = 0; i < numberOfRows; i++) {
-      if (columnVector.isNullAt(i)) {
-        builder.appendNull();
-      } else {
-        type.writeSlice(builder, wrappedBuffer((byte[]) columnVector.getData(i)));
-      }
-    }
-  }
-
-  private void populateVector(Type type, int numberOfRows, BlockBuilder builder) {
-    for (int i = 0; i < numberOfRows; i++) {
-      type.writeSlice(builder, wrappedBuffer((byte[]) columnVector.getData(i)));
-    }
-  }
-
-
-
 
 }

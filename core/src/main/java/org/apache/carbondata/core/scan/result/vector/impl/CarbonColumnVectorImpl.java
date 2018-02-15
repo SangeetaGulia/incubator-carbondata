@@ -47,21 +47,35 @@ public class CarbonColumnVectorImpl implements CarbonColumnVector {
 
   private short[] shorts;
 
+
   private BitSet nullBytes;
 
   private DataType dataType;
 
   private DataType blockDataType;
 
+  private byte[] byteStr;
+
+  private int[] offsetVector;
+
+  private boolean[] isNullVector;
   /**
    * True if there is at least one NULL byte set. This is an optimization for the writer, to skip
    * having to clear NULL bits.
    */
   protected boolean anyNullsSet;
 
+  public int[] getOffsetVector() {
+    return offsetVector;
+  }
+
+  public boolean[] getIsNullVector() {
+    return isNullVector;
+  }
 
   public CarbonColumnVectorImpl(int batchSize, DataType dataType) {
     nullBytes = new BitSet(batchSize);
+    isNullVector = new boolean[batchSize];
     this.dataType = dataType;
     if (dataType == DataTypes.BOOLEAN || dataType == DataTypes.BYTE) {
       byteArr = new byte[batchSize];
@@ -79,6 +93,7 @@ public class CarbonColumnVectorImpl implements CarbonColumnVector {
       decimals = new BigDecimal[batchSize];
     } else if (dataType == DataTypes.STRING || dataType == DataTypes.BYTE_ARRAY) {
       bytes = new byte[batchSize][];
+      offsetVector = new int[batchSize + 1];
     } else {
       data = new Object[batchSize];
     }
@@ -154,12 +169,18 @@ public class CarbonColumnVectorImpl implements CarbonColumnVector {
   }
 
   @Override public void putBytes(int rowId, int offset, int length, byte[] value) {
+    if(byteStr == null) {
+      byteStr = new byte[value.length];
+    }
+    offsetVector[rowId + 1] = offsetVector[rowId] + length;
     bytes[rowId] = new byte[length];
     System.arraycopy(value, offset, bytes[rowId], 0, length);
+    System.arraycopy(value, offset, byteStr, offsetVector[rowId], length);
   }
 
   @Override public void putNull(int rowId) {
     nullBytes.set(rowId);
+    isNullVector[rowId] = true;
     anyNullsSet = true;
   }
 
@@ -209,6 +230,10 @@ public class CarbonColumnVectorImpl implements CarbonColumnVector {
     }
   }
 
+  public Object getStringData() {
+    return byteStr;
+  }
+
   @Override public void reset() {
     nullBytes.clear();
     if (dataType == DataTypes.BOOLEAN || dataType == DataTypes.BYTE) {
@@ -227,6 +252,9 @@ public class CarbonColumnVectorImpl implements CarbonColumnVector {
       Arrays.fill(decimals, null);
     } else if (dataType == DataTypes.STRING || dataType == DataTypes.BYTE_ARRAY) {
       Arrays.fill(bytes, null);
+      byteStr = null;
+      Arrays.fill(offsetVector, 0);
+      Arrays.fill(isNullVector, false);
     } else {
       Arrays.fill(data, null);
     }

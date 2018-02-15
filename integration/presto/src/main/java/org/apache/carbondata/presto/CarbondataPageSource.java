@@ -56,7 +56,7 @@ class CarbondataPageSource implements ConnectorPageSource {
   private final PageBuilder pageBuilder;
   private boolean closed;
   private CarbonVectorizedRecordReader vectorReader;
-  private CarbonDictionaryDecodeReadSupport<Object[]> readSupport;
+  private CarbonDictionaryDecodeReadSupport readSupport;
   List<ColumnHandle> columnHandles;
   private long sizeOfData = 0;
   private final StreamReader[] readers ;
@@ -106,6 +106,7 @@ class CarbondataPageSource implements ConnectorPageSource {
             close();
             return null;
           }
+
         }
       } else {
         close();
