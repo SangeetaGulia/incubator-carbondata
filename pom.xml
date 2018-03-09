@@ -623,6 +623,20 @@
         <script.exetension>.bat</script.exetension>
       </properties>
     </profile>
+    <profile>
+      <id>lucene</id>
+      <modules>
+        <module>datamap/lucene</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>mv</id>
+      <modules>
+        <module>datamap/mv/core</module>
+        <module>datamap/mv/plan</module>
+        <module>tools/advisor</module>
+      </modules>
+    </profile>
   </profiles>
 
 </project>
