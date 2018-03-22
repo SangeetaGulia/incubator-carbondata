@@ -523,6 +523,7 @@ public class CarbonTableInputFormat<T> extends FileInputFormat<Void, T> {
                 if (length != 0) {
                   BlockLocation[] blkLocations;
                   FileSystem fs = FileFactory.getFileSystem(path);
+                  System.out.println("\n\n !!!!!! CarbonTableInputFormat getFileStatus !!!!!!!!!!!!!!!!!1");
                   FileStatus file = fs.getFileStatus(path);
                   blkLocations = fs.getFileBlockLocations(path, 0, length);
                   long blockSize = file.getBlockSize();

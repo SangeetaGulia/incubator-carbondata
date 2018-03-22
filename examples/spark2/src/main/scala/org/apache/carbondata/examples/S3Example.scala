@@ -83,7 +83,7 @@ object S3Example {
          | TBLPROPERTIES('SORT_COLUMNS'='', 'DICTIONARY_INCLUDE'='dateField, charField')
        """.stripMargin)
 
-    spark.sql(
+   /* spark.sql(
       s"""
          | LOAD DATA LOCAL INPATH '$path'
          | INTO TABLE carbon_table
@@ -94,9 +94,9 @@ object S3Example {
       s"""
          | SELECT *
          | FROM carbon_table
-      """.stripMargin).show()
+      """.stripMargin).show()*/
 
-    spark.sql(
+   /* spark.sql(
       s"""
          | LOAD DATA LOCAL INPATH '$path'
          | INTO TABLE carbon_table
@@ -129,7 +129,7 @@ object S3Example {
       s"""
          | SELECT *
          | FROM carbon_table
-      """.stripMargin).show()
+      """.stripMargin).show()*/
 
     spark.sql("Drop table if exists carbon_table")
 

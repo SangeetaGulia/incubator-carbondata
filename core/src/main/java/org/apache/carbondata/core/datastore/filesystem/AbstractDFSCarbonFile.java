@@ -70,6 +70,7 @@ public abstract class AbstractDFSCarbonFile implements CarbonFile {
     filePath = filePath.replace("\\", "/");
     Path path = new Path(filePath);
     try {
+      System.out.println("\n\n !!!!!!!!!!!!!!!!!! Abstract DFS constructor 1");
       fs = path.getFileSystem(this.hadoopConf);
       fileStatus = fs.getFileStatus(path);
     } catch (IOException e) {
@@ -85,6 +86,8 @@ public abstract class AbstractDFSCarbonFile implements CarbonFile {
     this.hadoopConf = hadoopConf;
     FileSystem fs;
     try {
+      System.out.println("\n\n !!!!!!!!!!!!! Abstract DFS constructor 2");
+
       fs = path.getFileSystem(this.hadoopConf);
       fileStatus = fs.getFileStatus(path);
     } catch (IOException e) {

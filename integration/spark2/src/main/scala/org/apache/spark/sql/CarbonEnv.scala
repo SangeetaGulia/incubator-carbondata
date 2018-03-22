@@ -143,7 +143,7 @@ object CarbonEnv {
    */
   def init(sparkSession: SparkSession): Unit = {
     initListeners
-    registerCommonListener(sparkSession)
+//    registerCommonListener(sparkSession)
   }
 
   /**
